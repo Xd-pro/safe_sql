@@ -1,9 +1,10 @@
 Disclaimer: This is my first Rust project ever, I'm open to constructive feedback about how the code is structured etc.
 # safe_sql
 Code generation tool for PHP making PDO queries more type-safe and easier to autocomplete. Works with any database supported by PDO (incl. MySql, SQLite, PostgreSQL)
+
 Generates zero-dependency code, so it can be used in [Pocketmine plugins](https://github.com/pmmp/PocketMine-MP), where composer dependencies can't easily be used. If you are using it in a PocketMine plugin, PLEASE use async tasks in a new thread pool to avoid lag!
 # Installation
-Download base.php and the binary from the releases section. Put base.php in the working directory.
+Download the binary from the releases section. Keep base.php in the working directory.
 
 It is responsible for the base class and namespace, so make sure to add a correct namespace before the abstract class in the file. 
 By default, the `out.php` file will be written when you run the executable, but passing in a command line argument can override this: `./safe_sql src/name/project/database/Transaction.php`
