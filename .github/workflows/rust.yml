@@ -16,7 +16,7 @@ jobs:
       matrix:
         target: [x86_64-pc-windows-gnu, x86_64-unknown-linux-musl]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@main
       - name: Compile and release
         uses: rust-build/rust-build.action@v1.4.4
         env:
