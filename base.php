@@ -130,11 +130,12 @@ if (extension_loaded("pmmpthread")) {
         });
     }
 
-    function bootstrapPocketmine(PluginBase $plugin, string $connectionString, int $pollTicks = 2) {
+    function bootstrapPocketmine(PluginBase $plugin, string $connectionString, int $pollTicks = 2): DatabaseThread {
         $t = new DatabaseThread($connectionString);
         $t->start(DatabaseThread::INHERIT_CLASSES);
         $plugin->getScheduler()->scheduleRepeatingTask(new ClosureTask(function() use (&$t) {
             tick($t);
         }), $pollTicks);
+        return $t;
     }
 }
