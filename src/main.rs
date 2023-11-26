@@ -41,8 +41,6 @@ fn main() -> Result<(), &'static dyn Error> {
         None => {"out.php".to_string()}
     };
 
-    println!("{:?}", out_location);
-
     let _ = fs::write(out_location, out);
 
     Ok(())
