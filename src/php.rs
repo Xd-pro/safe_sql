@@ -98,7 +98,7 @@ pub fn generate_method<'a>(name: &String, query: &Vec<SqlToken>) -> Function {
             body.push_str(&("$".to_owned() + &var + ","));
         }
         body.push_str(
-            &("]); while ($res = $statement->fetch(PDO::FETCH_NUM)) { yield new ".to_owned()
+            &("]); while ($res = $statement->fetch(\\PDO::FETCH_NUM)) { yield new ".to_owned()
                 + &name
                 + "(...$res);}"),
         );

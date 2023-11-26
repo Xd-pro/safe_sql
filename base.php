@@ -3,10 +3,13 @@
 use pmmp\thread\Thread;
 use pmmp\thread\ThreadSafe;
 use pmmp\thread\ThreadSafeArray;
+use pocketmine\plugin\Plugin;
+use pocketmine\plugin\PluginBase;
+use pocketmine\scheduler\ClosureTask;
 
 abstract class TransactionBase {
 
-    public function __construct(public PDO $db)
+    public function __construct(public \PDO $db)
     {
         $db->beginTransaction();
     }
@@ -65,7 +68,7 @@ if (extension_loaded("pmmpthread")) {
                     
                     if ($conn->inTransaction()) {
                         $conn->rollBack();
-                        throw new Exception("Async transaction was not closed! Call \$transaction->commit() or \$transaction->rollBack() in the AsyncTransaction. Rolled back transaction to prevent damage");
+                        throw new \Exception("Async transaction was not closed! Call \$transaction->commit() or \$transaction->rollBack() in the AsyncTransaction. Rolled back transaction to prevent damage");
                     }
                 }
                 $this->synchronized(function() use (&$toAdd) {
@@ -116,7 +119,7 @@ if (extension_loaded("pmmpthread")) {
         usleep(100000);
     }
     
-    function runAsyncTransaction(DatabaseThread &$thread, AsyncTransaction $query, Closure $onDone) {
+    function runAsyncTransaction(DatabaseThread &$thread, AsyncTransaction $query, \Closure $onDone) {
         $id = 0;
         while (isset(ClosureStore::$closures[$id])) {
             $id++;
@@ -125,5 +128,13 @@ if (extension_loaded("pmmpthread")) {
         $thread->synchronized(function() use (&$query, &$id, &$thread) {
             $thread->data[]= new DataEntry(true, $query, $id);
         });
+    }
+
+    function bootstrapPocketmine(PluginBase $plugin, string $connectionString, int $pollTicks = 2) {
+        $t = new DatabaseThread($connectionString);
+        $t->start(DatabaseThread::INHERIT_CLASSES);
+        $plugin->getScheduler()->scheduleRepeatingTask(new ClosureTask(function() use (&$t) {
+            tick($t);
+        }), $pollTicks);
     }
 }

@@ -23,6 +23,9 @@ fn main() -> Result<(), &'static dyn Error> {
 
 
     for (name, sql) in &base {
+        if sql == "" {
+            panic!("Syntax error in {}", name);
+        }
         let tokens = sqlfile::lex_sql(sql.clone());
         out.push_str(&php::generate_method(&name, &tokens).to_string());
     }
