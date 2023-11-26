@@ -30,7 +30,7 @@ if (extension_loaded("pmmpthread")) {
         abstract public function run(Transaction $t);
     }
     
-    class DatabaseThread extends Thread {
+    class DatabaseThreadInternal extends Thread {
     
         /** @var ThreadSafeArray<int, DataEntry> */
         public $data;
@@ -81,6 +81,34 @@ if (extension_loaded("pmmpthread")) {
         }
     
     }
+
+    class DatabaseThread {
+
+        private DatabaseThreadInternal $thread;
+
+        public function run(AsyncTransaction $query, \Closure $onDone = null) {
+            if ($onDone === null) {
+                $onDone = function() {};
+            }
+            $id = 0;
+            while (isset(ClosureStore::$closures[$id])) {
+                $id++;
+            }
+            ClosureStore::$closures[$id] = $onDone;
+            $this->thread->synchronized(function() use (&$query, &$id) {
+                $this->thread->data[]= new DataEntry(true, $query, $id);
+            });
+        }
+
+        public function __construct(string $connectionString = null, DatabaseThreadInternal $internal = null)
+        {
+            if ($internal === null) {
+                $internal = new DatabaseThreadInternal($connectionString);
+            }
+            $this->thread = $internal;
+        }
+
+    }
     
     class DataEntry extends ThreadSafe {
     
@@ -95,7 +123,7 @@ if (extension_loaded("pmmpthread")) {
         public static array $closures = [];
     }
     
-    function tick(DatabaseThread $t) {
+    function tick(DatabaseThreadInternal $t) {
         /** @var DataEntry[] */
         $toProcess = [];
         $t->synchronized(function() use (&$toProcess, &$t) {
@@ -118,24 +146,13 @@ if (extension_loaded("pmmpthread")) {
         }
         usleep(100000);
     }
-    
-    function runAsyncTransaction(DatabaseThread &$thread, AsyncTransaction $query, \Closure $onDone) {
-        $id = 0;
-        while (isset(ClosureStore::$closures[$id])) {
-            $id++;
-        }
-        ClosureStore::$closures[$id] = $onDone;
-        $thread->synchronized(function() use (&$query, &$id, &$thread) {
-            $thread->data[]= new DataEntry(true, $query, $id);
-        });
-    }
 
     function bootstrapPocketmine(PluginBase $plugin, string $connectionString, int $pollTicks = 2): DatabaseThread {
-        $t = new DatabaseThread($connectionString);
-        $t->start(DatabaseThread::INHERIT_CLASSES);
+        $t = new DatabaseThreadInternal($connectionString);
+        $t->start(DatabaseThreadInternal::INHERIT_CLASSES);
         $plugin->getScheduler()->scheduleRepeatingTask(new ClosureTask(function() use (&$t) {
             tick($t);
         }), $pollTicks);
-        return $t;
+        return new DatabaseThread(null, $t);
     }
 }
