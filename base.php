@@ -2,6 +2,7 @@
 
 namespace Finnbar\Duels\database;
 
+use Exception;
 use pmmp\thread\Thread;
 use pmmp\thread\ThreadSafe;
 use pmmp\thread\ThreadSafeArray;
@@ -94,13 +95,17 @@ class DatabaseThread extends Thread
             foreach ($toProcess as $data) {
                 /** @var AsyncTransaction */
                 $at = $data->data;
-                $toAdd[] = new DataEntry(false, serialize($at->run(new Transaction($conn))), $data->callbackId);
+                try {
+                    $toAdd[] = new DataEntry(false, serialize($at->run(new Transaction($conn))), $data->callbackId);
+                } catch (Exception $e) {
+                    $toAdd[] = new DataEntry(false, serialize($e), $data->callbackId);
+                }
                 $this->synchronized(function () {
                     $this->active--;
                 });
                 if ($conn->inTransaction()) {
                     $conn->rollBack();
-                    throw new \Exception("Async transaction was not closed! Call \$transaction->commit() or \$transaction->rollBack() in the AsyncTransaction. Rolled back transaction to prevent damage");
+                    echo "WARN: Async transaction was not closed! Call \$transaction->commit() or \$transaction->rollBack() in the AsyncTransaction. Rolled back transaction to prevent damage\n";
                 }
             }
             $this->synchronized(function () use (&$toAdd) {

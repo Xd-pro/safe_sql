@@ -6,7 +6,7 @@ Generates zero-dependency code, so it can be used in [Pocketmine plugins](https:
 # Installation
 Download the binary from the releases section. Keep base.php in the working directory.
 
-It is responsible for the base class and namespace, so make sure to add a correct namespace before the abstract class in the file. 
+It is responsible for the base class and namespace, so make sure to add a correct namespace after the <?php tag in the file. 
 By default, the `out.php` file will be written when you run the executable, but passing in a command line argument can override this: `./safe_sql src/name/project/database/Transaction.php`
 # Basic usage
 Create a directory called queries in the working directory. Inside, you will put SQL files with special syntax for PHP types:
@@ -91,8 +91,44 @@ try {
     $t->rollBack();
 }
 ```
+# Async (PocketMine-MP)
+First, bootstrap the thread pool used for async in onEnable:
+```php
+class MyPlugin extends PluginBase {
+
+    public DatabasePool $db;
+
+    public function onEnable(): void {
+        $this->db = SafeSql::bootstrapPocketmine($this, "Your PDO connection string");
+    }
+
+}
+```
+To run a query we need to create an `AsyncTransaction`:
+```php
+class AT_BooksBlurbByName extends AsyncTransaction {
+
+    public function __construct(private string $name) {}
+
+    public function run() {
+        $result = $t->books_blurb_by_name("The GFO");
+        $t->commit(); // if you don't commit or rollBack, a warning is produced in the console and the data is rolled back! This is to ensure unintentional updates don't happen.
+        foreach ($result as $res) {
+            echo $res->Blurb . "\n";
+        }
+    }
+
+}
+```
+And then pass it into `DatabasePool::run`:
+```php
+$this->db->run(new AT_BooksBlurbByName, function(books_blurb_by_name|Exception $data) {
+    if ($data instanceof books_blurb_by_name) {
+        var_dump($data->Blurb);
+    }
+});
+```
 # Planned
-- Async task generation for PocketMine
 - Remove sometimes unnecessary call to `PDO::lastInsertId`
 - Support multiple databases at once (similar to how [libAsynql](https://github.com/poggit/libAsynql/) does)
 - Better syntax error reporting in SQL files
