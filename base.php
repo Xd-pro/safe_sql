@@ -1,7 +1,5 @@
 <?php
 
-namespace Finnbar\Duels\database;
-
 use Exception;
 use pmmp\thread\Thread;
 use pmmp\thread\ThreadSafe;
