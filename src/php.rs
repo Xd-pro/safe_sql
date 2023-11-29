@@ -70,6 +70,7 @@ pub fn generate_method<'a>(name: &String, query: &Vec<SqlToken>) -> Function {
             SqlToken::Variable(name, type_name) => {
                 for param in &params {
                     if param.name == name {
+                        vars.push(name);
                         continue 'outer;
                     }
                 }
