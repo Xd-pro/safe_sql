@@ -58,7 +58,7 @@ pub fn generate_method<'a>(name: &String, query: &Vec<SqlToken>) -> Function {
         }
     }
     let comment = if has_returns {
-        "/** @return ".to_string() + &name + "[]|Generator */"
+        "/** @return ".to_string() + &name + "[]|\\Generator */"
     } else {
         "/** @return int */".to_string()
     };
