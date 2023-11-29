@@ -65,9 +65,14 @@ pub fn generate_method<'a>(name: &String, query: &Vec<SqlToken>) -> Function {
     
     let mut vars: Vec<String> = Vec::new();
     let mut params: Vec<Param> = Vec::new();
-    for token in query.clone() {
+    'outer: for token in query.clone() {
         match token {
             SqlToken::Variable(name, type_name) => {
+                for param in &params {
+                    if param.name == name {
+                        continue 'outer;
+                    }
+                }
                 params.push(Param { name: name.clone(), param_type: type_name, visibility: None });
                 vars.push(name);
             }
