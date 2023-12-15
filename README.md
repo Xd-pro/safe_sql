@@ -114,7 +114,7 @@ class AT_BooksBlurbByName extends AsyncTransaction {
         $result = $t->books_blurb_by_name("The GFO");
         $t->commit(); // if you don't commit or rollBack, a warning is produced in the console and the data is rolled back! This is to ensure unintentional updates don't happen.
         foreach ($result as $res) {
-            echo $res->Blurb . "\n";
+            return $res;
         }
     }
 
