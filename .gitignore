@@ -3,3 +3,5 @@
 database.sqlite
 out.php
 vendor
+composer.json
+composer.lock

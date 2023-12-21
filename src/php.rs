@@ -121,25 +121,13 @@ pub fn generate_method<'a>(name: &String, query: &Vec<SqlToken>) -> Function {
         }
     }
 
-    let a = A{a: body};
-
     return Function {
-        body: vec![Box::new(a)],
+        body: vec![Box::new(body)],
         name: name.clone(),
         params,
         comment,
         visibility: Some(Visibility::Public())
     };
-}
-
-struct A {
-    a: String
-}
-
-impl ToString for A {
-    fn to_string(&self) -> String {
-        self.a.clone()
-    }
 }
 
 // returns for double quotes
