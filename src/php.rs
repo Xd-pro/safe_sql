@@ -1,4 +1,5 @@
 use crate::sqlfile::SqlToken;
+use cascade::cascade;
 use crate::php_lib::{Class, Visibility, Function, Param, ClassMember};
 
 pub fn generate_return_type(class: &String, query: &Vec<SqlToken>) -> String {
@@ -150,4 +151,78 @@ pub fn escape(string: String) -> String {
         }
     }
     out
+}
+
+pub fn generate_async_transaction(name: &String, query: &Vec<SqlToken>) -> Class {
+    let mut body = "$out = $t->".to_string();
+
+    let mut params: Vec<Param> = Vec::new();
+
+    for token in query.clone() {
+        match token {
+            SqlToken::Variable(name, type_name) => {
+                params.push(Param { name: name.to_string(), param_type: type_name.to_string(), visibility: Some(Visibility::Private()) });
+            }
+            _ => {}
+        }
+    }
+
+    println!("{:?}", params);
+
+    body.push_str(name);
+    body.push_str("(");
+    for param in &params {
+        body.push_str("$this->");
+        body.push_str(&param.name);
+        body.push_str(",");
+    }
+
+    let mut has_returns = false;
+    for token in query {
+        match token {
+            SqlToken::Return(_, _) => {
+                has_returns = true;
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    if has_returns {
+        body.push_str(");
+            $rv = [];
+            foreach ($out as $out) {
+                $rv[]=$out;
+            }
+            return $rv;"
+        );
+    } else {
+        body.push_str(");return $out;")
+    }
+
+    
+
+    Class {
+        comment: "".to_string(),
+        name: cascade! { "AT_".to_string();..push_str(name); },
+        extends: Some("AsyncTransaction".to_string()),
+        implements: Vec::new(),
+        is_abstract: false,
+        members: vec![
+            Box::new(Function {
+                comment: "".to_string(),
+                params,
+                name: "__construct".to_string(),
+                body: vec![],
+                visibility: Some(Visibility::Public())
+            }),
+            Box::new(Function {
+                comment: "".to_string(),
+                name: "run".to_string(),
+                params: vec![Param {name: "t".to_string(), param_type: "Transaction".to_string(), visibility: None}],
+                body: vec![Box::new(body)],
+                visibility: Some(Visibility::Public())
+            })
+        ]
+    }
 }

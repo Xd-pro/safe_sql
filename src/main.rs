@@ -1,4 +1,6 @@
 use std::{fs, collections::HashMap, error::Error, env};
+
+use sqlfile::{SqlToken, lex_sql};
 mod sqlfile;
 mod php;
 mod php_lib;
@@ -21,20 +23,24 @@ fn main() -> Result<(), &'static dyn Error> {
         }
     }
 
+    let mut tokens: HashMap<String, Vec<SqlToken>> = HashMap::new();
 
     for (name, sql) in &base {
+        tokens.insert(name.to_string(), lex_sql(sql.to_string()));
         if sql == "" {
             panic!("Syntax error in {}", name);
         }
-        let tokens = sqlfile::lex_sql(sql.clone());
-        out.push_str(&php::generate_method(&name, &tokens).to_string());
+        out.push_str(&php::generate_method(&name, &tokens[name]).to_string());
     }
 
     out.push('}');
 
-    for (name, sql) in &base {
-        let tokens = sqlfile::lex_sql(sql.clone());
-        out.push_str(&php::generate_return_type(&name, &tokens));
+    for (name, _sql) in &base {
+        out.push_str(&php::generate_return_type(&name, &tokens[name]));
+    }
+
+    for (name, _sql) in &base {
+        out.push_str(&php::generate_async_transaction(&name, &tokens[name]).to_string());
     }
 
     let mut it = env::args();

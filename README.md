@@ -112,7 +112,6 @@ class AT_BooksBlurbByName extends AsyncTransaction {
 
     public function run() {
         $result = $t->books_blurb_by_name("The GFO");
-        $t->commit(); // if you don't commit or rollBack, a warning is produced in the console and the data is rolled back! This is to ensure unintentional updates don't happen.
         foreach ($result as $res) {
             return $res;
         }
@@ -129,7 +128,6 @@ $this->db->run(new AT_BooksBlurbByName, function(books_blurb_by_name|Exception $
 });
 ```
 # Planned
-- Remove sometimes unnecessary call to `PDO::lastInsertId`
 - Support multiple databases at once (similar to how [libAsynql](https://github.com/poggit/libAsynql/) does)
 - Better syntax error reporting in SQL files
 - Migration system
