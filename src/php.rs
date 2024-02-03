@@ -1,3 +1,4 @@
+use indexmap::IndexMap;
 use crate::sqlfile::SqlToken;
 use cascade::cascade;
 use crate::php_lib::{Class, Visibility, Function, Param, ClassMember};
@@ -88,7 +89,7 @@ pub fn generate_method<'a>(name: &String, query: &Vec<SqlToken>) -> Function {
             SqlToken::Return(a, _) => a,
             SqlToken::Variable(_, _) => "?",
             SqlToken::Sql(a) => {
-                if a.starts_with("INSERT") && i == 0 {
+                if a.to_lowercase().starts_with("insert") && i == 0 {
                     insert = true;
                 }
                 a
@@ -156,22 +157,20 @@ pub fn escape(string: String) -> String {
 pub fn generate_async_transaction(name: &String, query: &Vec<SqlToken>) -> Class {
     let mut body = "$out = $t->".to_string();
 
-    let mut params: Vec<Param> = Vec::new();
+    let mut params: IndexMap<String, Param> = IndexMap::new();
 
     for token in query.clone() {
         match token {
             SqlToken::Variable(name, type_name) => {
-                params.push(Param { name: name.to_string(), param_type: type_name.to_string(), visibility: Some(Visibility::Private()) });
+                params.insert(name.clone(), Param { name: name.to_string(), param_type: type_name.to_string(), visibility: Some(Visibility::Private()) });
             }
             _ => {}
         }
     }
 
-    println!("{:?}", params);
-
     body.push_str(name);
     body.push_str("(");
-    for param in &params {
+    for (_, param) in &params {
         body.push_str("$this->");
         body.push_str(&param.name);
         body.push_str(",");
@@ -211,7 +210,7 @@ pub fn generate_async_transaction(name: &String, query: &Vec<SqlToken>) -> Class
         members: vec![
             Box::new(Function {
                 comment: "".to_string(),
-                params,
+                params: params.values().cloned().collect(),
                 name: "__construct".to_string(),
                 body: vec![],
                 visibility: Some(Visibility::Public())

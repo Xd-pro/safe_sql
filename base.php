@@ -1,7 +1,7 @@
 <?php
 
 use Exception;
-use pmmp\thread\Thread;
+use pocketmine\thread\Thread;
 use pmmp\thread\ThreadSafe;
 use pmmp\thread\ThreadSafeArray;
 use pocketmine\plugin\PluginBase;
@@ -68,13 +68,16 @@ class DatabaseThread extends Thread
         }
     }
 
-    public function run(): void
+    public bool $stop = false;
+
+    public function onRun(): void
     {
         $conn = new \PDO($this->databaseConnector);
         while (true) {
+            $t = false;
             /** @var DataEntry[] */
             $toProcess = [];
-            $this->synchronized(function () use (&$toProcess) {
+            $this->synchronized(function () use (&$toProcess, &$t) {
                 $toPutBack = [];
                 foreach ($this->data as $data) {
                     if ($data->query) {
@@ -85,7 +88,12 @@ class DatabaseThread extends Thread
                 }
                 $this->data = ThreadSafeArray::fromArray($toPutBack);
                 $this->active = count($toProcess);
+                if ($this->stop && $this->active === 0) {
+                    $t = true;
+                }
             });
+
+            if ($t) break;
 
             /** @var DataEntry[] */
             $toAdd = [];
@@ -95,16 +103,16 @@ class DatabaseThread extends Thread
                 $at = $data->data;
                 try {
                     $toAdd[] = new DataEntry(false, serialize($at->run(new Transaction($conn))), $data->callbackId);
+                    if ($conn->inTransaction()) $conn->commit();
                 } catch (Exception $e) {
+                    throw $e;
+                    exit;
                     $toAdd[] = new DataEntry(false, serialize($e), $data->callbackId);
+                    if ($conn->inTransaction()) $conn->rollBack();
                 }
                 $this->synchronized(function () {
                     $this->active--;
                 });
-                if ($conn->inTransaction()) {
-                    $conn->rollBack();
-                    echo "WARN: Async transaction was not closed! Call \$transaction->commit() or \$transaction->rollBack() in the AsyncTransaction. Rolled back transaction to prevent damage\n";
-                }
             }
             $this->synchronized(function () use (&$toAdd) {
                 foreach ($toAdd as $ta) {
@@ -139,6 +147,17 @@ class DatabasePool
         });
     }
 
+    public function stopThreads() {
+        foreach ($this->threads as $thread) {
+            $thread->synchronized(function () use (&$thread) {
+                $thread->stop = true;
+            });
+            if ($thread->isRunning()) {
+                $thread->join();
+            }
+        }
+    }
+
     public function tick()
     {
         foreach ($this->threads as $thread) {
@@ -165,7 +184,7 @@ class DatabasePool
         while ($workers > 0) {
             $workers--;
             $thread = new DatabaseThread($connectionString);
-            $thread->start(DatabaseThread::INHERIT_CLASSES);
+            $thread->start();
             $this->threads[] = $thread;
         }
     }

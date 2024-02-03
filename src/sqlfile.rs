@@ -227,7 +227,7 @@ pub fn lex_sql(mut sql: String) -> Vec<SqlToken> {
                 current.push(char);
             } else {
                 if found_char {
-                    if !char.is_whitespace() && (char.is_alphanumeric() || char == '_') {
+                    if !char.is_whitespace() && (char.is_alphanumeric() || char == '_' || char == '?') {
                         type_name.push(char);
                     } else {
                         if in_return {
@@ -243,7 +243,7 @@ pub fn lex_sql(mut sql: String) -> Vec<SqlToken> {
                         past_colon = false;
                     }
                 } else {
-                    if !char.is_whitespace() && (char.is_alphanumeric() || char == '_') {
+                    if !char.is_whitespace() && (char.is_alphanumeric() || char == '_' || char == '?') {
                         type_name.push(char);
                         found_char = true;
                     }
@@ -295,6 +295,8 @@ pub fn lex_sql(mut sql: String) -> Vec<SqlToken> {
     if !in_return && !in_variable {
         out.push(SqlToken::Sql(current));
     }
+
+    println!("{:?}", &out);
 
     out
 

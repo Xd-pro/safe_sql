@@ -13,7 +13,7 @@ pub struct Class {
 
 pub trait ClassMember: ToString {}
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Visibility {
     Public(),
     Private(),
@@ -128,7 +128,7 @@ impl ClassMember for Function {
     
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Param {
     
     pub name: String,
