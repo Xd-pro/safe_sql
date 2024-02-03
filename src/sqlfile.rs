@@ -296,8 +296,6 @@ pub fn lex_sql(mut sql: String) -> Vec<SqlToken> {
         out.push(SqlToken::Sql(current));
     }
 
-    println!("{:?}", &out);
-
     out
 
 }
