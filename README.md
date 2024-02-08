@@ -107,6 +107,12 @@ class MyPlugin extends PluginBase {
 
 }
 ```
+And close it in onDisable
+```php
+    public function onDisable(): void {
+        $this->db->stopThreads();
+    }
+```
 To run a query we need to create an `AsyncTransaction`:
 ```php
 class AT_BooksBlurbByName extends AsyncTransaction {
