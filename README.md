@@ -107,32 +107,17 @@ class MyPlugin extends PluginBase {
 
 }
 ```
-And close it in onDisable
+...and close it in onDisable
 ```php
     public function onDisable(): void {
         $this->db->stopThreads();
     }
 ```
-To run a query we need to create an `AsyncTransaction`:
+Now you can run a query like so:
 ```php
-class AT_BooksBlurbByName extends AsyncTransaction {
-
-    public function __construct(private string $name) {}
-
-    public function run() {
-        $result = $t->books_blurb_by_name("The GFO");
-        foreach ($result as $res) {
-            return $res;
-        }
-    }
-
-}
-```
-And then pass it into `DatabasePool::run`:
-```php
-$this->db->run(new AT_BooksBlurbByName, function(books_blurb_by_name|Exception $data) {
-    if ($data instanceof books_blurb_by_name) {
-        var_dump($data->Blurb);
+$this->db->run(new AT_books_blurb_by_name, function(array $data) {
+    foreach ($data as $res) {
+        var_dump($res);
     }
 });
 ```
