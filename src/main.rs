@@ -1,11 +1,11 @@
-use std::{fs, collections::HashMap, error::Error, env};
+use std::{collections::HashMap, env, fs, io};
 
 use sqlfile::{SqlToken, lex_sql};
 mod sqlfile;
 mod php;
 mod php_lib;
 
-fn main() -> Result<(), &'static dyn Error> {
+fn main() -> io::Result<()> {
     let mut out = fs::read_to_string("base.php").unwrap() + "class Transaction extends TransactionBase {";
 
     let mut base: HashMap<String, String> = HashMap::new();
@@ -50,9 +50,7 @@ fn main() -> Result<(), &'static dyn Error> {
         None => {"out.php".to_string()}
     };
 
-    let _ = fs::write(out_location, out);
-
-    Ok(())
+    fs::write(out_location, out)
     
 }
 
