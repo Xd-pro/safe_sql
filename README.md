@@ -4,12 +4,15 @@ Code generation tool for PHP making PDO queries more type-safe and easier to aut
 
 Generates zero-dependency code, so it can be used in [Pocketmine plugins](https://github.com/pmmp/PocketMine-MP), where composer dependencies can't easily be used. If you are using it in a PocketMine plugin, PLEASE use AsyncTransactions!
 # Installation
-Download the binary from the releases section. Keep base.php in the working directory.
-
-It is responsible for the base class and namespace, so make sure to add a correct namespace after the <?php tag in the file. 
-By default, the `out.php` file will be written when you run the executable, but passing in a command line argument can override this: `./safe_sql src/name/project/database/Transaction.php`
+Download the binary from the releases section.
 # Basic usage
-Create a directory called queries in the working directory. Inside, you will put SQL files with special syntax for PHP types:
+Create a file called safe_sql.toml at the root of your project. Paste the following, chaning it to match your project.
+```toml
+queries_dir = "queries"
+out = "out.php"
+namespace = "Author\\Project\\database"
+```
+Next, create a directory called queries in the working directory. Inside, you will put SQL files with special syntax for PHP types:
 
 `books.sql`
 ```sql

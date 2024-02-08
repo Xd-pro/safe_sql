@@ -8,4 +8,6 @@ edition = "2021"
 [dependencies]
 cascade = "1.0.1"
 indexmap = "2.1.0"
+serde = {version = "1.0.196", features = ["serde_derive"]}
 string-builder = "0.2.0"
+toml = "0.8.10"

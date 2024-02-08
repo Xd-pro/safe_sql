@@ -1,0 +1,3 @@
+queries_dir = "queries"
+out = "out.php"
+namespace = "Author\\Project\\database"

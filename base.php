@@ -1,11 +1,20 @@
 <?php
 
+namespace Finnbar\Quests\database;
+
 use Exception;
 use pocketmine\thread\Thread;
 use pmmp\thread\ThreadSafe;
 use pmmp\thread\ThreadSafeArray;
 use pocketmine\plugin\PluginBase;
 use pocketmine\scheduler\ClosureTask;
+use Throwable;
+
+/*
+
+Hi future developer. This file is used by safe_sql for code generation. Don't modify it manually.
+
+*/
 
 abstract class TransactionBase
 {
@@ -26,9 +35,9 @@ abstract class TransactionBase
     }
 }
 
-abstract class AsyncTransaction extends ThreadSafe
+abstract class AsyncTransaction
 {
-
+    // @phpstan-ignore-next-line
     abstract public function run(Transaction $t);
 }
 
@@ -45,8 +54,9 @@ class DatabaseThread extends Thread
         $this->data = new ThreadSafeArray;
     }
 
-    public function tick()
+    public function tick(): void
     {
+        if ($this->isTerminated()) throw new Exception("Thread died?");
         /** @var DataEntry[] */
         $toProcess = [];
         $this->synchronized(function () use (&$toProcess) {
@@ -62,7 +72,12 @@ class DatabaseThread extends Thread
         });
         foreach ($toProcess as $data) {
             if ($data->callbackId !== null) {
-                ClosureStore::$closures[$data->callbackId](unserialize($data->data));
+                // @phpstan-ignore-next-line
+                $deser = unserialize($data->data);
+                if ($deser instanceof Throwable) {
+                    throw $deser;
+                }
+                ClosureStore::$closures[$data->callbackId]($deser);
                 unset(ClosureStore::$closures[$data->callbackId]);
             }
         }
@@ -93,20 +108,27 @@ class DatabaseThread extends Thread
                 }
             });
 
-            if ($t) break;
+            if ($t) {
+                \gc_enable();
+                unset($conn);
+                break;
+            };
 
             /** @var DataEntry[] */
             $toAdd = [];
 
             foreach ($toProcess as $data) {
                 /** @var AsyncTransaction */
-                $at = $data->data;
+                // @phpstan-ignore-next-line
+                $at = unserialize($data->data);
                 try {
-                    $toAdd[] = new DataEntry(false, serialize($at->run(new Transaction($conn))), $data->callbackId);
+                    $t = new Transaction($conn);
+                    $toAdd[] = new DataEntry(false, serialize($at->run($t)), $data->callbackId);
                     if ($conn->inTransaction()) $conn->commit();
+                    unset($t);
                 } catch (Exception $e) {
                     throw $e;
-                    exit;
+                    // @phpstan-ignore-next-line
                     $toAdd[] = new DataEntry(false, serialize($e), $data->callbackId);
                     if ($conn->inTransaction()) $conn->rollBack();
                 }
@@ -130,10 +152,11 @@ class DatabasePool
     /** @var DatabaseThread[] $threads */
     private array $threads = [];
 
-    public function run(AsyncTransaction $query, \Closure $onDone = null)
+    public function run(AsyncTransaction $query, \Closure $onDone = null): void
     {
         if ($onDone === null) {
-            $onDone = function () {
+            $onDone = function (mixed $data) {
+                if ($data instanceof Exception) throw $data;
             };
         }
         $id = 0;
@@ -143,11 +166,12 @@ class DatabasePool
         ClosureStore::$closures[$id] = $onDone;
         $thread = $this->strongest_thread();
         $thread->synchronized(function () use (&$query, &$id, &$thread) {
-            $thread->data[] = new DataEntry(true, $query, $id);
+            // @phpstan-ignore-next-line
+            $thread->data[] = new DataEntry(true, \serialize($query), $id);
         });
     }
 
-    public function stopThreads() {
+    public function stopThreads(): void {
         foreach ($this->threads as $thread) {
             $thread->synchronized(function () use (&$thread) {
                 $thread->stop = true;
@@ -158,7 +182,7 @@ class DatabasePool
         }
     }
 
-    public function tick()
+    public function tick(): void
     {
         foreach ($this->threads as $thread) {
             $thread->tick();
@@ -192,14 +216,14 @@ class DatabasePool
 
 class DataEntry extends ThreadSafe
 {
-
-    public function __construct(public bool $query, public $data, public ?string $callbackId = null)
+    public function __construct(public bool $query, public mixed $data, public ?string $callbackId = null)
     {
     }
 }
 
 class ClosureStore
 {
+    /** @var \Closure[] */
     public static array $closures = [];
 }
 
