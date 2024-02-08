@@ -215,7 +215,7 @@ pub fn lex_sql(mut sql: String) -> Vec<SqlToken> {
     let mut current = String::new();
     let mut type_name = String::new();
 
-    let mut past_colon = false;
+    let mut past_colon = true;
 
     for (i, char) in sql.chars().enumerate() {
         if in_variable || in_return {
@@ -223,6 +223,9 @@ pub fn lex_sql(mut sql: String) -> Vec<SqlToken> {
                 if char == ':' {
                     past_colon = true;
                     continue;
+                }
+                if char.is_whitespace() {
+                    panic!("Syntax error");
                 }
                 current.push(char);
             } else {
@@ -240,7 +243,7 @@ pub fn lex_sql(mut sql: String) -> Vec<SqlToken> {
                         type_name = String::new();
                         in_return = false;
                         in_variable = false;
-                        past_colon = false;
+                        past_colon = true;
                     }
                 } else {
                     if !char.is_whitespace() && (char.is_alphanumeric() || char == '_' || char == '?') {
@@ -290,6 +293,11 @@ pub fn lex_sql(mut sql: String) -> Vec<SqlToken> {
                 current.push(char);
             }
         }
+    }
+
+    if !past_colon {
+        let s: String = current.chars().take(10).collect();
+        panic!("Syntax error: expected colon near {}", s);
     }
 
     if !in_return && !in_variable {
